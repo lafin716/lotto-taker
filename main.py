@@ -14,22 +14,12 @@ def welcome():
     print("===================================")
     return True
 
-def menu():
-    print("===================================")
-    print("원하는 기능을 입력해주세요.")
-    print("1. 최신 저장 회차 확인")
-    print("2. 원하는 회차 당첨번호 조회")
-    print("3. 전체 회차 당첨번호 수집")
-    print("4. 전체 회차 간략 통계 분석")
-    print("0. 끝내기")
-    print("===================================")
-    return input("번호를 입력하세요: ")
-
 def main():
     is_continue = True
+    handler = mh.MenuHandler()
     while is_continue:
-        selected_menu = menu()
-        is_continue = mh.handle(selected_menu)
+        selected_menu = handler.ask_menu()
+        is_continue = handler.handle(selected_menu)
 
 if __name__ == '__main__':
     if welcome():

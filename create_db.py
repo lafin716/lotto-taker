@@ -23,6 +23,21 @@ def create_table():
     )
     ''')
 
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS my_lotto (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        pick_date TEXT,
+        pick_type TEXT,
+        round INTEGER,
+        num1 INTEGER,
+        num2 INTEGER,
+        num3 INTEGER,
+        num4 INTEGER,
+        num5 INTEGER,
+        num6 INTEGER
+    )
+    ''')
+
     conn.commit()
     conn.close()
 
@@ -31,6 +46,7 @@ def drop_table():
     cursor = conn.cursor()
 
     cursor.execute('DROP TABLE IF EXISTS lotto')
+    cursor.execute('DROP TABLE IF EXISTS my_lotto')
     conn.commit()
     conn.close()
 

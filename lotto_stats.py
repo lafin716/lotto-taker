@@ -2,7 +2,8 @@ import pandas as pd
 import utils as u
 import matplotlib.pyplot as plt
 
-import lotto_repo
+from repo import lotto_repo
+
 
 def make_df(list):
     df = pd.DataFrame.from_records(list, columns=['round', 'pick_date', 'num1', 'num2', 'num3', 'num4', 'num5', 'num6', 'bonus', 'total_sell_amount', 'first_prize_winners', 'first_prize_amount', 'first_prize_each'])
