@@ -1,4 +1,5 @@
 import datetime
+import random
 
 def format_price(price, decimal=0):
     format_str = '{:0,.%df}' % decimal

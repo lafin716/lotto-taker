@@ -4,12 +4,14 @@ import lotto_stats
 import utils as u
 from repo.lotto_repo import LottoRepo
 from repo.my_lotto_repo import MyLottoRepo
+from service.suggest_service import SuggestService
 
 
 class MenuHandler:
     def __init__(self):
         self.lotto_repo = LottoRepo()
         self.my_lotto_repo = MyLottoRepo()
+        self.suggest_service = SuggestService()
 
     def latest_saved_round(self):
         row = self.lotto_repo.get_latest_round()
@@ -190,14 +192,42 @@ class MenuHandler:
             print(f"{rank}등 당첨 : {count}회")
         print("모든 로또를 확인했습니다.")
 
+    def get_suggest_lotto(self):
+        print("로또 번호 추천은 특정 알고리즘으로 이미 구매한 이력이 있는 경우 해당 정보를 기반으로 추천합니다.")
+        future_round = self.get_future_round()
+        latest_round = self.get_specific_round(future_round['round'] - 1)
+        print(f"최근 회차 : {latest_round['round']}회차")
+        print(f"최근 추첨일 : {latest_round['pick_date']}")
+        print(f"다음 회차 : {future_round['round']}회차")
+        print(f"다음 추첨일 : {future_round['pick_date']}")
+
+        bought_lottos = self.my_lotto_repo.get_round_all(future_round['round'])
+        if not bought_lottos:
+            print("구매 이력이 없어 랜덤으로 생성합니다.")
+            nums = []
+            for _ in range(5):
+                nums.append(self.suggest_service.generate_lotto_nums())
+            print("===================================")
+            print("추천 번호입니다.")
+            for num in nums:
+                print(" ".join(u.zero_padding(n) for n in num))
+            print("===================================")
+            return True
+
+        print("구매한 로또 정보를 기반으로 추천번호를 생성합니다.")
+        print("===================================")
+        suggest_nums = self.suggest_service.get_suggest(future_round['round'])
+        for num in suggest_nums:
+            print(" ".join(u.zero_padding(n) for n in num))
 
     def get_menu_data(self):
         return [
             {'label': "내 로또 추가", 'action': self.bulk_add_my_lotto},
-            {'label': "특정 회차 구매 로또 추가", 'action': self.bulk_add_before_my_lotto},
-            {'label': "구매한 전체 로또 당첨여부 조회", 'action': self.show_all_my_lotto},
-            {'label': "특정 회차 로또 당첨여부 조회", 'action': self.show_round_my_lotto},
+            {'label': "로또 번호 추천", 'action': self.get_suggest_lotto},
             {'label': "예전 회차 전체 로또 당첨 확인", 'action': self.find_my_lotto_been_corrected},
+            {'label': "구매한 전체 로또 당첨여부 조회", 'action': self.show_all_my_lotto},
+            {'label': "특정 회차 구매 로또 추가", 'action': self.bulk_add_before_my_lotto},
+            {'label': "특정 회차 로또 당첨여부 조회", 'action': self.show_round_my_lotto},
             {'label': "최신 저장 회차 확인", 'action': self.latest_saved_round},
             {'label': "원하는 회차 당첨번호 조회", 'action': self.specific_round},
             {'label': "전체 회차 당첨번호 수집", 'action': lotto_mig.migrate_all},
