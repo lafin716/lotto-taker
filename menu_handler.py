@@ -163,12 +163,13 @@ class MenuHandler:
         print("내가 구매한 모든 로또 번호가 역대 당첨번호와 일치하는지 확인합니다.")
         all_wins = self.lotto_repo.get_all()
         all_my_lottos = self.my_lotto_repo.get_all()
-        for my_lotto in all_my_lottos:
-            for win in all_wins:
-                win_nums = [win[f'num{i}'] for i in range(1, 7)]
-                bonus_num = win['bonus']
-                match_count = 0
-                bonus_match_count = 0
+        match_stats = {}
+        for win in all_wins:
+            win_nums = [win[f'num{i}'] for i in range(1, 7)]
+            bonus_num = win['bonus']
+            match_count = 0
+            bonus_match_count = 0
+            for my_lotto in all_my_lottos:
                 for i in range(1, 7):
                     num = my_lotto[f'num{i}']
                     if num in win_nums:
@@ -177,8 +178,16 @@ class MenuHandler:
                         bonus_match_count += 1
                 rank = u.get_rank(match_count, bonus_match_count)
                 if rank > 0:
-                    print(f"구매 : {my_lotto['round']}회차, 추첨 : {win['round']} 회차 {my_lotto['num1']} {my_lotto['num2']} {my_lotto['num3']} {my_lotto['num4']} {my_lotto['num5']} {my_lotto['num6']} {rank}등 당첨")
-                    break
+                    if str(rank) not in match_stats:
+                        match_stats[str(rank)] = 0
+                    match_stats[str(rank)] += 1
+                    if rank == 1:
+                        print(f"구매 : {my_lotto['round']}회차, 추첨 : {win['round']} 회차 {my_lotto['num1']} {my_lotto['num2']} {my_lotto['num3']} {my_lotto['num4']} {my_lotto['num5']} {my_lotto['num6']} {rank}등 당첨")
+                match_count = 0
+                bonus_match_count = 0
+        print("===================================")
+        for rank, count in sorted(match_stats.items()):
+            print(f"{rank}등 당첨 : {count}회")
         print("모든 로또를 확인했습니다.")
 
 
