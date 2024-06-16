@@ -59,14 +59,68 @@ def pretty_print_my_lotto(row):
         print(f"출력 중 오류 발생: {e}")
         print(row)
 
-def pretty_print_my_lotto_raw(row):
+def color_green(text):
+    start_color = "\033[1;32m"
+    end_color = "\033[0m"
+    return f"{start_color}{text}{end_color}"
+
+def color_red(text):
+    start_color = "\033[1;31m"
+    end_color = "\033[0m"
+    return f"{start_color}{text}{end_color}"
+
+def get_rank(match_count, bonus_match_count):
+    if match_count == 6:
+        return 1
+    elif match_count == 5 and bonus_match_count == 1:
+        return 2
+    elif match_count == 5 and bonus_match_count == 0:
+        return 3
+    elif match_count == 4:
+        return 4
+    elif match_count == 3:
+        return 5
+    else:
+        return 0
+
+def pretty_print_my_lotto_raw(row, win_info=None):
     if not row:
         print("해당 정보가 없습니다.")
         return
     try:
         print_rows = []
-        print_rows.append(f"{'자동' if row['pick_type'] == '1' else '수동'} [{row['num1']}] [{row['num2']}] [{row['num3']}] [{row['num4']}] [{row['num5']}] [{row['num6']}]")
-        print("\n".join(print_rows))
+
+        pick_type_label = "자동" if row['pick_type'] == '1' else "수동"
+        print_rows.append(f"{pick_type_label} ")
+
+        match_count = 0
+        bonus_match_count = 0
+        if win_info:
+            main_win_nums = [win_info['num1'], win_info['num2'], win_info['num3'], win_info['num4'], win_info['num5'], win_info['num6']]
+            bonus_num = win_info['bonus']
+        else:
+            main_win_nums = []
+            bonus_num = 0
+
+        for i in range(1, 7):
+            num = row[f'num{i}']
+            if num in main_win_nums:
+                match_count += 1
+                print_rows.append(color_green(zero_padding(num)))
+            elif num == bonus_num:
+                bonus_match_count += 1
+                print_rows.append(color_red(zero_padding(num)))
+            else:
+                print_rows.append(zero_padding(num))
+
+        rank = get_rank(match_count, bonus_match_count)
+        if rank == 0:
+            print_rows.append("(낙첨)")
+        else:
+            print_rows.append(f"({rank}등)")
+
+        print(" ".join(print_rows))
+        return match_count, bonus_match_count
     except Exception as e:
         print(f"출력 중 오류 발생: {e}")
         print(row)
@@ -76,25 +130,27 @@ def pretty_print_my_lottos(rows):
         print("해당 정보가 없습니다.")
         return
     try:
-        # 회차별로 묶어서 출력
-        lotto_map = {}
-        for row in rows:
-            if str(row['round']) not in lotto_map:
-                lotto_map[str(row['round'])] = {
-                    'round': row['round'],
-                    'pick_date': row['pick_date']
-                }
-            if 'rows' not in lotto_map[str(row['round'])]:
-                lotto_map[str(row['round'])]['rows'] = []
-            lotto_map[str(row['round'])]['rows'].append(row)
-
         # 출력
-        for round in sorted(lotto_map.keys()):
-            paper = lotto_map[str(round)]
+        for round in sorted(rows.keys()):
+            paper = rows[str(round)]
             print(f"제 {paper['round']} 회")
             print(f"추첨일 : {clean_date(paper['pick_date'])}")
+            if 'win_info' in paper:
+                win_info = paper['win_info']
+                win_num_prints = []
+                for i in range(1, 7):
+                    win_num_prints.append(zero_padding(win_info[f'num{i}']))
+                print(f"당첨번호: {' '.join(win_num_prints)}")
+                print(f"보너스 번호: {win_info['bonus']}")
+
+            total_match_count = 0
+            total_bonus_match_count = 0
             for row in paper['rows']:
-                pretty_print_my_lotto_raw(row)
+                match_count, bonus_match_count = pretty_print_my_lotto_raw(row, win_info)
+                total_match_count += match_count
+                total_bonus_match_count += bonus_match_count
+
+            print(f"총 {total_match_count}개 일치, {total_bonus_match_count}개 보너스 일치")
             print("===================================")
     except Exception as e:
         print(f"출력 중 오류 발생: {e}")

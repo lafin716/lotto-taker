@@ -20,22 +20,28 @@ class MenuHandler:
 
     def specific_round(self):
         round = input("원하는 회차를 입력하세요: ")
+        row = self.get_specific_round(round)
+        if not row:
+            return True
+        print("===================================")
+        print(f"{round} 회차 정보입니다.")
+        u.pretty_print(row)
+        print("===================================")
+
+    def get_specific_round(self, round):
         row = self.lotto_repo.get_round(round)
         if not row:
             print("해당 회차 정보가 없어 새로 수집합니다.")
             new_row = lotto_crawler.get_lotto_summary(round)
             if not new_row:
-                print("로또 정보를 가져오는 데 실패했습니다. 다시 시도해주세요.")
-                return True
+                print("해당 회차 정보가 없습니다.")
+                return False
             self.lotto_repo.save_round(new_row)
             row = self.lotto_repo.get_round(round)
             if not row:
                 print("로또 정보를 저장하는데 실패했습니다. 다시 시도해주세요.")
-                return True
-        print("===================================")
-        print(f"{round} 회차 정보입니다.")
-        u.pretty_print(row)
-        print("===================================")
+                return False
+        return row
 
     def simple_summary(self):
         all_data = self.lotto_repo.get_all()
@@ -98,17 +104,91 @@ class MenuHandler:
 
     def show_all_my_lotto(self):
         rows = self.my_lotto_repo.get_all()
+        # 회차별로 묶어서 출력
+        lotto_map = {}
+        for row in rows:
+            if str(row['round']) not in lotto_map:
+                lotto_map[str(row['round'])] = {
+                    'round': row['round'],
+                    'pick_date': row['pick_date']
+                }
+            if 'rows' not in lotto_map[str(row['round'])]:
+                lotto_map[str(row['round'])]['rows'] = []
+            lotto_map[str(row['round'])]['rows'].append(row)
+
+        # 라운드별 당첨번호 조회
+        for round in sorted(lotto_map.keys()):
+            win_info = self.get_specific_round(round)
+            if not win_info:
+                continue
+            lotto_map[str(round)]["win_info"] = win_info
 
         print("===================================")
         print("구매한 전체 로또 정보입니다.")
-        u.pretty_print_my_lottos(rows)
+        u.pretty_print_my_lottos(lotto_map)
         print("===================================")
+
+    def show_round_my_lotto(self):
+        round = input("원하는 회차를 입력하세요: ")
+        rows = self.my_lotto_repo.get_round_all(round)
+        if not rows:
+            print("해당 회차에 구매한 정보가 없습니다.")
+            return True
+
+        # 회차별로 묶어서 출력
+        lotto_map = {}
+        for row in rows:
+            if str(row['round']) not in lotto_map:
+                lotto_map[str(row['round'])] = {
+                    'round': row['round'],
+                    'pick_date': row['pick_date']
+                }
+            if 'rows' not in lotto_map[str(row['round'])]:
+                lotto_map[str(row['round'])]['rows'] = []
+            lotto_map[str(row['round'])]['rows'].append(row)
+
+        # 라운드별 당첨번호 조회
+        for round in sorted(lotto_map.keys()):
+            win_info = self.get_specific_round(round)
+            if not win_info:
+                continue
+            lotto_map[str(round)]["win_info"] = win_info
+
+        print("===================================")
+        print(f"{round} 회차 로또 정보입니다.")
+        u.pretty_print_my_lottos(lotto_map)
+        print("===================================")
+
+    def find_my_lotto_been_corrected(self):
+        print("내가 구매한 모든 로또 번호가 역대 당첨번호와 일치하는지 확인합니다.")
+        all_wins = self.lotto_repo.get_all()
+        all_my_lottos = self.my_lotto_repo.get_all()
+        for my_lotto in all_my_lottos:
+            for win in all_wins:
+                win_nums = [win[f'num{i}'] for i in range(1, 7)]
+                bonus_num = win['bonus']
+                match_count = 0
+                bonus_match_count = 0
+                for i in range(1, 7):
+                    num = my_lotto[f'num{i}']
+                    if num in win_nums:
+                        match_count += 1
+                    elif num == bonus_num:
+                        bonus_match_count += 1
+                rank = u.get_rank(match_count, bonus_match_count)
+                if rank > 0:
+                    print(f"구매 : {my_lotto['round']}회차, 추첨 : {win['round']} 회차 {my_lotto['num1']} {my_lotto['num2']} {my_lotto['num3']} {my_lotto['num4']} {my_lotto['num5']} {my_lotto['num6']} {rank}등 당첨")
+                    break
+        print("모든 로또를 확인했습니다.")
+
 
     def get_menu_data(self):
         return [
             {'label': "내 로또 추가", 'action': self.bulk_add_my_lotto},
             {'label': "특정 회차 구매 로또 추가", 'action': self.bulk_add_before_my_lotto},
-            {'label': "구매한 전체 로또 조회", 'action': self.show_all_my_lotto},
+            {'label': "구매한 전체 로또 당첨여부 조회", 'action': self.show_all_my_lotto},
+            {'label': "특정 회차 로또 당첨여부 조회", 'action': self.show_round_my_lotto},
+            {'label': "예전 회차 전체 로또 당첨 확인", 'action': self.find_my_lotto_been_corrected},
             {'label': "최신 저장 회차 확인", 'action': self.latest_saved_round},
             {'label': "원하는 회차 당첨번호 조회", 'action': self.specific_round},
             {'label': "전체 회차 당첨번호 수집", 'action': lotto_mig.migrate_all},

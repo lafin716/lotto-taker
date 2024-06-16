@@ -25,14 +25,14 @@ class MyLottoRepo:
             conn.close()
             return []
 
-    def get_round(self, round):
+    def get_round_all(self, round):
         conn = self.connect()
         try:
             cursor = conn.cursor()
             cursor.execute(f"SELECT * FROM my_lotto WHERE round = {round}")
-            result = cursor.fetchone()
+            result = cursor.fetchall()
             self.close(conn)
-            return self.to_dict(result)
+            return self.to_dict_all(result)
         except Exception as e:
             conn.close()
             return False
